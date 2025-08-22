@@ -1,16 +1,14 @@
 import express from "express";
 import Booking from "../models/Booking.js";
 import { createBooking, getOccupiedSeats } from "../controllers/bookingController.js";
+import { checkPaymentStatus } from "../controllers/paymentController.js";
 
 const bookingRouter = express.Router();
 
-// Create a new booking
+// Existing routes...
 bookingRouter.post("/create", createBooking);
-
-// Get occupied seats for a show
 bookingRouter.get("/seats/:showId", getOccupiedSeats);
 
-// Redirect to Stripe payment link for a booking
 bookingRouter.get("/pay/:bookingId", async (req, res) => {
   try {
     const { bookingId } = req.params;
@@ -19,7 +17,6 @@ bookingRouter.get("/pay/:bookingId", async (req, res) => {
 
     if (!booking.paymentLink) return res.status(400).send("Payment link not available");
 
-    // Redirect to Stripe checkout
     return res.redirect(booking.paymentLink);
   } catch (error) {
     console.error("Error in /pay/:bookingId:", error);
@@ -27,7 +24,10 @@ bookingRouter.get("/pay/:bookingId", async (req, res) => {
   }
 });
 
-// New route: Get booking details by ID (used for polling payment status)
+// New route: check payment status
+bookingRouter.get("/check-payment/:bookingId", checkPaymentStatus);
+
+// Get booking details by ID (used for polling or detailed fetch)
 bookingRouter.get("/:id", async (req, res) => {
   try {
     const { id } = req.params;

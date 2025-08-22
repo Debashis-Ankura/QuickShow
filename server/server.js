@@ -40,7 +40,12 @@ app.post(
  */
 app.use(cors());
 app.use(express.json()); // Must come after the Stripe raw parser
-app.use(clerkMiddleware());
+// Skip Clerk for Stripe webhook requests
+app.use((req, res, next) => {
+  if (req.path === "/api/stripe") return next(); // skip Clerk for webhook
+  return clerkMiddleware()(req, res, next);
+});
+
 
 /**
  * ✅ Routes

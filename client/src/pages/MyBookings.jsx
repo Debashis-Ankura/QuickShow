@@ -48,7 +48,15 @@ const MyBookings = () => {
         if (data.booking?.isPaid) {
           console.log("✅ Booking marked as paid on server!");
           setPollingMessage('Payment confirmed! Refreshing bookings...');
-          await getMyBookings();
+
+          // 🧠 Clear and refresh bookings
+          setBookings((prev) => {
+            const updated = prev.map((b) =>
+              b._id === bookingId ? { ...b, isPaid: true, paymentLink: '' } : b
+            );
+            return updated;
+          });
+
           return;
         }
       } catch (error) {
@@ -63,6 +71,7 @@ const MyBookings = () => {
     setIsPolling(false);
   }
 };
+
 
 
   // Redirect to backend payment link
