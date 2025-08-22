@@ -105,7 +105,7 @@ const sendShowReminders = inngest.createFunction(
   {cron: "0 */8 * * *"},
   async ({step}) => {
     const now = new Date()
-    const in8Hours = new Data(now.getTime() + 60 * 60 * 1000)
+    const in8Hours = new Date(now.getTime() + 60 * 60 * 1000)
     const windowStart = new Date(in8Hours.getTime() - 10*60*1000)
 
     const reminderTasks = await step.run("Prepare-reminder-tasks", async ()=>{
