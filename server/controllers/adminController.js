@@ -12,7 +12,7 @@ export const isAdmin = async (req, res) => {
         const user = await clerkClient.users.getUser(userId);
         const isAdmin = user.privateMetadata?.role === "admin";
 
-        return res.json({ success: true, isAdmin });
+        return res.json({ success: true, isAdmin })
     } catch (error) {
         console.error("isAdmin error:", error);
         return res.status(500).json({ success: false, message: "Server error" });
