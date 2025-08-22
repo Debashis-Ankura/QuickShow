@@ -18,9 +18,7 @@ export const getUserBookings = async (req, res) => {
     // Attach paymentLink for unpaid bookings
     const bookingsWithPaymentLink = bookings.map((b) => ({
       ...b.toObject(),
-      paymentLink: !b.isPaid
-        ? `${BACKEND_URL}/api/booking/pay/${b._id}` 
-        : null,
+      paymentLink: b.paymentLink || null,
     }));
 
     res.json({ success: true, bookings: bookingsWithPaymentLink });

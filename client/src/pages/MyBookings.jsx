@@ -35,10 +35,14 @@ const MyBookings = () => {
   }
 
   useEffect(() => {
-    if (user) {
-      getMyBookings()
-    }
-  }, [user])
+  if (user) {
+    getMyBookings()
+    // Re-fetch once after 5s in case webhook was a bit late
+    const timer = setTimeout(() => getMyBookings(), 5000)
+    return () => clearTimeout(timer)
+  }
+}, [user])
+
 
   if (isLoading) return <Loading />
 
