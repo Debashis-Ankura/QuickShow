@@ -11,6 +11,8 @@ const MyBookings = () => {
   const { getToken, user, image_base_url } = useAppContext()
   const [bookings, setBookings] = useState([])
   const [isLoading, setIsLoading] = useState(true)
+  const [isPolling, setIsPolling] = useState(false)
+  const [pollingMessage, setPollingMessage] = useState('')
 
   // Fetch user bookings
   const getMyBookings = async () => {
@@ -27,6 +29,42 @@ const MyBookings = () => {
     setIsLoading(false)
   }
 
+  // Poll booking status from backend
+  const pollBookingStatus = async (bookingId) => {
+  setIsPolling(true);
+  setPollingMessage('Verifying payment...');
+
+  console.log("🔁 Starting polling for booking ID:", bookingId);
+
+  try {
+    for (let i = 0; i < 5; i++) {
+      try {
+        const { data } = await axios.get(`/api/booking/${bookingId}`, {
+          headers: { Authorization: `Bearer ${await getToken()}` }
+        });
+
+        console.log(`⏳ Poll attempt ${i + 1}:`, data.booking);
+
+        if (data.booking?.isPaid) {
+          console.log("✅ Booking marked as paid on server!");
+          setPollingMessage('Payment confirmed! Refreshing bookings...');
+          await getMyBookings();
+          return;
+        }
+      } catch (error) {
+        console.error(`❌ Polling error (attempt ${i + 1}):`, error);
+      }
+
+      await new Promise((res) => setTimeout(res, 2000));
+    }
+
+    setPollingMessage('Could not confirm payment yet. Please refresh later.');
+  } finally {
+    setIsPolling(false);
+  }
+};
+
+
   // Redirect to backend payment link
   const handlePayNow = (paymentLink) => {
     if (paymentLink) {
@@ -34,15 +72,25 @@ const MyBookings = () => {
     }
   }
 
+  // Extract bookingId from URL query param
   useEffect(() => {
-  if (user) {
+    if (!user) return
+
     getMyBookings()
-    // Re-fetch once after 5s in case webhook was a bit late
+
+    const urlParams = new URLSearchParams(window.location.search)
+    const bookingId = urlParams.get('bookingId')
+
+    if (bookingId) {
+      pollBookingStatus(bookingId)
+      // Clean URL so bookingId param disappears after polling
+      window.history.replaceState(null, '', window.location.pathname)
+    }
+
+    // Also re-fetch bookings once after 5s just in case webhook delayed
     const timer = setTimeout(() => getMyBookings(), 5000)
     return () => clearTimeout(timer)
-  }
-}, [user])
-
+  }, [user])
 
   if (isLoading) return <Loading />
 
@@ -52,6 +100,10 @@ const MyBookings = () => {
       <BlurCircle bottom="0px" left="600px" />
 
       <h1 className="text-lg font-semibold mb-4">My Bookings</h1>
+
+      {isPolling && (
+        <p className="mb-4 text-blue-600 font-semibold">{pollingMessage}</p>
+      )}
 
       {bookings.length > 0 ? (
         bookings.map((item, index) => (

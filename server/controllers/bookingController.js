@@ -63,7 +63,7 @@ export const createBooking = async (req, res) => {
     ];
 
     // Redirect to frontend
-    const successUrl = `${process.env.FRONTEND_URL}/my-bookings`;
+    const successUrl = `${process.env.FRONTEND_URL}/my-bookings?bookingId=${booking._id.toString()}`;
     const cancelUrl = `${process.env.FRONTEND_URL}/my-bookings`;
 
     const session = await stripeInstance.checkout.sessions.create({

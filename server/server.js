@@ -16,8 +16,7 @@ const port = process.env.PORT || 3000;
 
 /**
  * ✅ Connect to MongoDB
- * - No top-level await (Vercel will crash if you block module init).
- * - Errors bubble up and stop the app if DB is missing/broken.
+ * - Avoid top-level await
  */
 connectDB()
   .then(() => console.log("✅ MongoDB connected"))
@@ -28,17 +27,19 @@ connectDB()
 
 /**
  * ✅ Stripe webhook must come BEFORE express.json()
- *  - Stripe needs the raw body
+ * - Stripe needs the raw body for signature verification
  */
 app.post(
   "/api/stripe",
-  express.raw({ type: "application/json" }),
+  express.raw({ type: "application/json" }), // raw body for Stripe
   stripeWebhooks
 );
 
-// Normal middlewares AFTER Stripe route
-app.use(express.json());
+/**
+ * ✅ Middleware and JSON parsing (after Stripe)
+ */
 app.use(cors());
+app.use(express.json()); // Must come after the Stripe raw parser
 app.use(clerkMiddleware());
 
 /**
@@ -52,9 +53,7 @@ app.use("/api/admin", adminRouter);
 app.use("/api/user", userRouter);
 
 /**
- * ✅ Local dev vs Vercel deployment
- * - On Vercel, export app (no app.listen)
- * - On localhost, start normal Express server
+ * ✅ Deployment-aware export
  */
 if (process.env.NODE_ENV !== "production") {
   app.listen(port, () =>
