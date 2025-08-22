@@ -11,8 +11,6 @@ const MyBookings = () => {
   const { getToken, user, image_base_url } = useAppContext()
   const [bookings, setBookings] = useState([])
   const [isLoading, setIsLoading] = useState(true)
-  const [isPolling, setIsPolling] = useState(false)
-  const [pollingMessage, setPollingMessage] = useState('')
 
   // Fetch user bookings
   const getMyBookings = async () => {
@@ -29,76 +27,25 @@ const MyBookings = () => {
     setIsLoading(false)
   }
 
-  // Poll booking status from backend
-  const pollBookingStatus = async (bookingId) => {
-  setIsPolling(true);
-  setPollingMessage('Verifying payment...');
-
-  console.log("🔁 Starting polling for booking ID:", bookingId);
-
-  try {
-    for (let i = 0; i < 5; i++) {
-      try {
-        const { data } = await axios.get(`/api/booking/${bookingId}`, {
-          headers: { Authorization: `Bearer ${await getToken()}` }
-        });
-
-        console.log(`⏳ Poll attempt ${i + 1}:`, data.booking);
-
-        if (data.booking?.isPaid) {
-          console.log("✅ Booking marked as paid on server!");
-          setPollingMessage('Payment confirmed! Refreshing bookings...');
-
-          // 🧠 Clear and refresh bookings
-          setBookings((prev) => {
-            const updated = prev.map((b) =>
-              b._id === bookingId ? { ...b, isPaid: true, paymentLink: '' } : b
-            );
-            return updated;
-          });
-
-          return;
-        }
-      } catch (error) {
-        console.error(`❌ Polling error (attempt ${i + 1}):`, error);
-      }
-
-      await new Promise((res) => setTimeout(res, 2000));
-    }
-
-    setPollingMessage('Could not confirm payment yet. Please refresh later.');
-  } finally {
-    setIsPolling(false);
-  }
-};
-
-
-
-  // Redirect to backend payment link
+  // Redirect to Stripe payment
   const handlePayNow = (paymentLink) => {
     if (paymentLink) {
       window.location.href = paymentLink
     }
   }
 
-  // Extract bookingId from URL query param
+  // On load: get bookings and handle Stripe redirect
   useEffect(() => {
     if (!user) return
 
     getMyBookings()
 
     const urlParams = new URLSearchParams(window.location.search)
-    const bookingId = urlParams.get('bookingId')
-
-    if (bookingId) {
-      pollBookingStatus(bookingId)
-      // Clean URL so bookingId param disappears after polling
+    if (urlParams.get('bookingId')) {
+      // After Stripe redirect — re-fetch bookings to check isPaid
+      getMyBookings()
       window.history.replaceState(null, '', window.location.pathname)
     }
-
-    // Also re-fetch bookings once after 5s just in case webhook delayed
-    const timer = setTimeout(() => getMyBookings(), 5000)
-    return () => clearTimeout(timer)
   }, [user])
 
   if (isLoading) return <Loading />
@@ -110,17 +57,13 @@ const MyBookings = () => {
 
       <h1 className="text-lg font-semibold mb-4">My Bookings</h1>
 
-      {isPolling && (
-        <p className="mb-4 text-blue-600 font-semibold">{pollingMessage}</p>
-      )}
-
       {bookings.length > 0 ? (
         bookings.map((item, index) => (
           <div
             key={index}
             className="flex flex-col md:flex-row justify-between bg-primary/8 border border-primary/20 rounded-lg mt-4 p-2 max-w-3xl"
           >
-            {/* Movie info */}
+            {/* Movie Info */}
             <div className="flex flex-col md:flex-row">
               <img
                 src={image_base_url + item.show.movie.poster_path}
@@ -138,7 +81,7 @@ const MyBookings = () => {
               </div>
             </div>
 
-            {/* Payment & seat info */}
+            {/* Payment & Seat Info */}
             <div className="flex flex-col md:items-end md:text-right justify-between p-4">
               <div className="flex items-center gap-4">
                 <p className="text-2xl font-semibold mb-3">

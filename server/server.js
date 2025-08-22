@@ -29,20 +29,42 @@ connectDB()
  * ✅ Stripe webhook must come BEFORE express.json()
  * - Stripe needs the raw body for signature verification
  */
+/**
+ * ✅ Stripe webhook must come BEFORE express.json()
+ */
 app.post(
   "/api/stripe",
-  express.raw({ type: "application/json" }), // raw body for Stripe
+  express.raw({ type: "application/json" }),
   stripeWebhooks
 );
 
 /**
- * ✅ Middleware and JSON parsing (after Stripe)
+ * ✅ CORS and JSON parser
  */
-app.use(cors());
-app.use(express.json()); // Must come after the Stripe raw parser
-// Skip Clerk for Stripe webhook requests
+const allowedOrigins = [
+  "https://quickshow-frontend-five.vercel.app",
+  "http://localhost:5173",
+];
+
+app.use(
+  cors({
+    origin: function (origin, callback) {
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.includes(origin)) return callback(null, true);
+      return callback(new Error("Not allowed by CORS"));
+    },
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  })
+);
+
+app.use(express.json());
+
+/**
+ * ✅ Clerk middleware (skip for Stripe webhook)
+ */
 app.use((req, res, next) => {
-  if (req.path === "/api/stripe") return next(); // skip Clerk for webhook
+  if (req.path === "/api/stripe") return next();
   return clerkMiddleware()(req, res, next);
 });
 
