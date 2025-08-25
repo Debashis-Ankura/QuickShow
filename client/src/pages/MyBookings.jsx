@@ -28,6 +28,7 @@ const MyBookings = () => {
   }
 
   // Redirect to Stripe payment
+
   const handlePayNow = (paymentLink) => {
     if (paymentLink) {
       window.location.href = paymentLink
