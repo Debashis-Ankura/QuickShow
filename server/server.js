@@ -16,7 +16,6 @@ const port = process.env.PORT || 3000;
 
 /**
  * ✅ Connect to MongoDB
- * - Avoid top-level await
  */
 connectDB()
   .then(() => console.log("✅ MongoDB connected"))
@@ -25,10 +24,6 @@ connectDB()
     process.exit(1);
   });
 
-/**
- * ✅ Stripe webhook must come BEFORE express.json()
- * - Stripe needs the raw body for signature verification
- */
 /**
  * ✅ Stripe webhook must come BEFORE express.json()
  */
@@ -42,14 +37,15 @@ app.post(
  * ✅ CORS and JSON parser
  */
 const allowedOrigins = [
-  "https://quickshow-frontend-five.vercel.app",
-  "http://localhost:5173",
+  "https://quickshow-client-ecru.vercel.app", // deployed frontend
+  "https://quickshow-frontend-five.vercel.app", // old frontend
+  "http://localhost:5173" // local dev
 ];
 
 app.use(
   cors({
     origin: function (origin, callback) {
-      if (!origin) return callback(null, true);
+      if (!origin) return callback(null, true); // allow server-to-server, curl, mobile, etc.
       if (allowedOrigins.includes(origin)) return callback(null, true);
       return callback(new Error("Not allowed by CORS"));
     },
@@ -67,7 +63,6 @@ app.use((req, res, next) => {
   if (req.path === "/api/stripe") return next();
   return clerkMiddleware()(req, res, next);
 });
-
 
 /**
  * ✅ Routes
